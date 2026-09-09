@@ -44,6 +44,11 @@ def parse_arguments() -> argparse.Namespace:
         default=Path("folder-hash-cache.json"),
         help="Reusable file-hash cache (default: folder-hash-cache.json)",
     )
+    parser.add_argument(
+            "--keep_file",
+            type=Path,
+            help="Keep files with this in their path and remove duplicates of this file",
+        )
     return parser.parse_args()
 
 
@@ -167,6 +172,22 @@ def candidate_folders(root: Path, all_folders: bool) -> list[Path]:
             candidates.append(current_path)
     return sorted(candidates)
 
+def keep_specific_file(sorted_match):
+    if sorted_match:
+#        print("\nSorted Match found\n")
+        for number, group in enumerate(sorted_match, start=1):
+            print(group)
+            print(f"\nGroup {number} ({len(sorted_match[group])} identical files):\n")
+            print(f"  Size: {group[0]}\n")
+            for path in sorted_match[group]:
+                print(f"  {path}\n")
+                
+    ## TODO add:
+    ## for path in sorted_match[group]
+    ##   if path.contains "\Prive\Muziek\"
+    ##     rm all entries in the group except \Prive\Muziek\
+    else:
+       print("\nNo matching files found\n")
 
 def main() -> int:
     args = parse_arguments()
@@ -181,22 +202,7 @@ def main() -> int:
 #    folders: list[tuple[Path, dict]] = []
     start = time.monotonic()
 
-# Original attempt
-#    candidates = candidate_folders(root, args.all_folders)
-#    print(f"\n\nThe list of candidates is: {candidates}\n\n")
-#    total_folders = len(candidates)
-#    print(f"Scanning {total_folders} candidate folders...")
-#    for number, folder in enumerate(candidates, start=1):
-#        print(f"[{number}/{total_folders}] {folder}")
- #       manifest = make_manifest(folder, cache, statistics, problems)
-#        if manifest is None:
-#            continue
-#        if manifest:
-#            print(f"The manifest of this folder is: {manifest}")
-#            folders.append((folder, manifest))
-#    print(f"\n\nThe complete folder manifest is: {folders}")
-
-# Attempt 3
+#  Actually compare files to eachother
 #    print(f"\n\nThe list of candidates is: {candidates}\n\n")
     all_files = defaultdict(list)
     candidates = candidate_folders(root, args.all_folders)
@@ -218,31 +224,6 @@ def main() -> int:
                     return None
 #    print(f"\n\nAll files: {all_files}")
 
-# Attempt 2 reading folders multiple times
-    # Create hashes for all files
-#    all_files: list[tuple[Path, dict]] = []
-#    all_files = defaultdict(list)
-#    print(f"\n\nThe current candidates are: {candidates}")
-#    for number, folder in enumerate(candidates, start=1):
-#        file_hashes = make_file_hashes(folder, cache, statistics, problems)
-#        for current, directories, filenames in os.walk(folder, onerror=walk_error, followlinks=False):
-#                current_path = Path(current)
-#                print(f"\n\nCurrent path is: {current_path}")
-#                symlink_directories = [name for name in directories if (current_path / name).is_symlink()]
-#                if symlink_directories:
-#                    problems.append(f"Skipped folder containing symbolic link: {folder}")
-#                    return None
-#                for name in filenames:
-#                    file_path = current_path / name
-#                    if file_path.is_symlink():
-#                        problems.append(f"Skipped symbolic link: {file_path}")
-#                        return None
-#                    try:
-#                        stat = file_path.stat()
-#                        all_files[(stat.st_size, hash_file(file_path, cache, statistics))].append(file_path)
-#                    except OSError as error:
-#                        problems.append(f"Could not hash {file_path}: {error}")
-#                        return None
 
     exact_match = defaultdict(list)
     if all_files:
@@ -254,6 +235,9 @@ def main() -> int:
     sorted_match = dict(sorted(exact_match.items(), key=lambda x: len(x[1]), reverse = True))
 #    print(f"\n\nThe list of exact matches{sorted_match}")
 
+    if(args.keep_file):
+        print("\nKeepfile is active\n")
+        keep_specific_file(sorted_match)
 
     elapsed = time.monotonic() - start
     args.report.parent.mkdir(parents=True, exist_ok=True)
@@ -276,10 +260,6 @@ def main() -> int:
                 report.write(f"  Size: {group[0]}\n")
                 for path in sorted_match[group]:
                     report.write(f"  {path}\n")
-                ## TODO add:
-                ## for path in sorted_match[group]
-                ##   if path.contains "\Prive\Muziek\"
-                ##     rm all entries in the group except \Prive\Muziek\
         else:
             report.write("None found.\n")
 
