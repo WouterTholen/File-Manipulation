@@ -181,7 +181,7 @@ def keep_specific_file(sorted_match):
             print(f"  Size: {group[0]}\n")
             for path in sorted_match[group]:
                 print(f"  {path}\n")
-                
+#                if 
     ## TODO add:
     ## for path in sorted_match[group]
     ##   if path.contains "\Prive\Muziek\"
