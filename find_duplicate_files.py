@@ -172,16 +172,35 @@ def candidate_folders(root: Path, all_folders: bool) -> list[Path]:
             candidates.append(current_path)
     return sorted(candidates)
 
-def keep_specific_file(sorted_match):
+def is_inside_path(full_path: Path, keep_path: Path) -> bool:
+    return str(keep_path).replace("\\", "/") in str(full_path).replace("\\", "/")
+
+def keep_specific_file(sorted_match, keep_path):
     if sorted_match:
 #        print("\nSorted Match found\n")
+        print(f"The path to keep is {keep_path}")
         for number, group in enumerate(sorted_match, start=1):
             print(group)
-            print(f"\nGroup {number} ({len(sorted_match[group])} identical files):\n")
-            print(f"  Size: {group[0]}\n")
+#            print(f"Group {number} ({len(sorted_match[group])} identical files):\n")
+            print(f" Size: {group[0]}\n")
+            keeper = ""
             for path in sorted_match[group]:
-                print(f"  {path}\n")
-#                if 
+#                print(f"  {path}\n")
+                if is_inside_path(path,keep_path):
+                    keeper = path
+                    print(f"\n!!! Path found in file {path}\n")
+#                else:
+#                    print(f"Path not found in file {path}")
+            if not keeper == "":
+                for path in sorted_match[group]:
+                    if not path == keeper:
+                        print(f"Deleting {path}")
+#                        try:
+#                            os.remove(path)
+#                        except:
+#                            print("Trouble deleting" + str(path)))
+                    else:
+                        print(f"!!!Keeping {path}")
     ## TODO add:
     ## for path in sorted_match[group]
     ##   if path.contains "\Prive\Muziek\"
@@ -237,7 +256,7 @@ def main() -> int:
 
     if(args.keep_file):
         print("\nKeepfile is active\n")
-        keep_specific_file(sorted_match)
+        keep_specific_file(sorted_match, args.keep_file)
 
     elapsed = time.monotonic() - start
     args.report.parent.mkdir(parents=True, exist_ok=True)
