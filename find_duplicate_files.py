@@ -179,10 +179,12 @@ def keep_specific_file(sorted_match, keep_path):
     if sorted_match:
 #        print("\nSorted Match found\n")
         print(f"The path to keep is {keep_path}")
+        deleted_counter = 0
+        keep_counter = 0
         for number, group in enumerate(sorted_match, start=1):
-            print(group)
+#            print(group)
 #            print(f"Group {number} ({len(sorted_match[group])} identical files):\n")
-            print(f" Size: {group[0]}\n")
+#            print(f"Size: {group[0]}\n")
             keeper = ""
             for path in sorted_match[group]:
 #                print(f"  {path}\n")
@@ -195,12 +197,15 @@ def keep_specific_file(sorted_match, keep_path):
                 for path in sorted_match[group]:
                     if not path == keeper:
                         print(f"Deleting {path}")
-#                        try:
-#                            os.remove(path)
-#                        except:
-#                            print("Trouble deleting" + str(path)))
+                        deleted_counter += 1
+                        try:
+                            os.remove(path)
+                        except:
+                            print("Trouble deleting" + str(path))
                     else:
                         print(f"!!!Keeping {path}")
+                        keep_counter += 1
+        print(f"\n\nThe amount of files kept = {keep_counter}\nThe amount of files deleted = {deleted_counter}")
     ## TODO add:
     ## for path in sorted_match[group]
     ##   if path.contains "\Prive\Muziek\"
