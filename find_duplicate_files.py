@@ -45,10 +45,17 @@ def parse_arguments() -> argparse.Namespace:
         help="Reusable file-hash cache (default: folder-hash-cache.json)",
     )
     parser.add_argument(
-            "--keep_file",
-            type=Path,
-            help="Keep files with this in their path and remove duplicates of this file",
-        )
+        "--keep_file",
+        type=Path,
+        help="Keep files with this in their path and remove duplicates of this file, "
+        "--delete is needed to do the actual deleting",
+    )
+    parser.add_argument(
+        "--delete",
+        action="store_true",
+        default=False,
+        help="Switch to actually delete the files marked with the --keep_file switch",
+    )
     return parser.parse_args()
 
 
@@ -175,7 +182,7 @@ def candidate_folders(root: Path, all_folders: bool) -> list[Path]:
 def is_inside_path(full_path: Path, keep_path: Path) -> bool:
     return str(keep_path).replace("\\", "/") in str(full_path).replace("\\", "/")
 
-def keep_specific_file(sorted_match, keep_path):
+def keep_specific_file(sorted_match, keep_path, delete):
     if sorted_match:
 #        print("\nSorted Match found\n")
         print(f"The path to keep is {keep_path}")
@@ -198,10 +205,11 @@ def keep_specific_file(sorted_match, keep_path):
                     if not path == keeper:
                         print(f"Deleting {path}")
                         deleted_counter += 1
-                        try:
-                            os.remove(path)
-                        except:
-                            print("Trouble deleting" + str(path))
+                        if delete:
+                            try:
+                                os.remove(path)
+                            except:
+                                print("Trouble deleting" + str(path))
                     else:
                         print(f"!!!Keeping {path}")
                         keep_counter += 1
@@ -259,9 +267,10 @@ def main() -> int:
     sorted_match = dict(sorted(exact_match.items(), key=lambda x: len(x[1]), reverse = True))
 #    print(f"\n\nThe list of exact matches{sorted_match}")
 
+    ## Calling the function to delete douplicate files based on a string to keep
     if(args.keep_file):
         print("\nKeepfile is active\n")
-        keep_specific_file(sorted_match, args.keep_file)
+        keep_specific_file(sorted_match, args.keep_file, args.delete)
 
     elapsed = time.monotonic() - start
     args.report.parent.mkdir(parents=True, exist_ok=True)
