@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Other files:
+folder-comparison-report.txt
+folder-hash-cache.json
+deleteLines.txt
