@@ -1,11 +1,3 @@
-"""Find identical (and nearly identical) folders without changing any files.
-
-By default, the folders compared are the direct child folders of ROOT.  This
-matches the usual "several backup folders in one place" layout and keeps the
-near-match search manageable.  Use --all-folders only when you intentionally
-want every nested folder to become a candidate.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -15,13 +7,12 @@ import os
 import sys
 import time
 from collections import defaultdict
-from collections import Counter
 from pathlib import Path
 
 
 HASH_BLOCK_SIZE = 1024 * 1024  # Read files in 1 MiB pieces.
 
-
+## Reading in all arguments from the commandline
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Report duplicate files. This program never deletes files."
@@ -58,7 +49,7 @@ def parse_arguments() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-
+## Load the hash file cache
 def load_cache(cache_path: Path) -> dict:
     """Load old hashes. A corrupt or missing cache is safe to ignore."""
     try:
@@ -68,7 +59,7 @@ def load_cache(cache_path: Path) -> dict:
     except (OSError, json.JSONDecodeError):
         return {}
 
-
+## Save the hash file to cache
 def save_cache(cache_path: Path, cache: dict) -> None:
     """Save hashes only after the scan has finished."""
     cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -77,7 +68,7 @@ def save_cache(cache_path: Path, cache: dict) -> None:
         json.dump(cache, handle, separators=(",", ":"))
     temporary_path.replace(cache_path)
 
-
+## Creating a hash of the file
 def hash_file(file_path: Path, cache: dict, statistics: dict) -> str:
     """Return a SHA-256 hash, reusing a hash when size and timestamp agree."""
     stat = file_path.stat()
@@ -108,7 +99,7 @@ def hash_file(file_path: Path, cache: dict, statistics: dict) -> str:
     statistics["hashed_bytes"] += stat.st_size
     return digest
 
-# Create a manifest of a file
+## Create a manifest of a file
 def make_manifest(folder: Path, cache: dict, statistics: dict, problems: list[str]) -> dict | None:
     """Map each relative file path to (size, SHA-256). Return None if incomplete."""
     manifest = {}
@@ -142,7 +133,7 @@ def make_manifest(folder: Path, cache: dict, statistics: dict, problems: list[st
 
     return None if walk_failed else manifest
 
-
+## Create a manifest of a folder
 def manifest_fingerprint(manifest: dict) -> str:
     """Create one stable fingerprint for a complete folder manifest."""
     hasher = hashlib.sha256()
@@ -155,7 +146,7 @@ def manifest_fingerprint(manifest: dict) -> str:
         hasher.update(b"\n")
     return hasher.hexdigest()
 
-
+## Find the differences between two folders
 def folder_differences(first: dict, second: dict) -> list[str]:
     """Return paths whose name, size, or contents differ between two folders."""
     return [
@@ -164,7 +155,7 @@ def folder_differences(first: dict, second: dict) -> list[str]:
         if first.get(name) != second.get(name)
     ]
 
-
+## Find all folder candidates
 def candidate_folders(root: Path, all_folders: bool) -> list[Path]:
     if not all_folders:
         print("Only returning the current folder")
@@ -179,9 +170,11 @@ def candidate_folders(root: Path, all_folders: bool) -> list[Path]:
             candidates.append(current_path)
     return sorted(candidates)
 
+## Check of keep_path is inside full_path
 def is_inside_path(full_path: Path, keep_path: Path) -> bool:
     return str(keep_path).replace("\\", "/") in str(full_path).replace("\\", "/")
 
+## Find and delete what files can be deduplicated
 def keep_specific_file(sorted_match, keep_path, delete):
     if sorted_match:
 #        print("\nSorted Match found\n")
@@ -205,6 +198,7 @@ def keep_specific_file(sorted_match, keep_path, delete):
                     if not path == keeper:
                         print(f"Deleting {path}")
                         deleted_counter += 1
+                        ## Check whether the switch to actually delete the files is set
                         if delete:
                             try:
                                 os.remove(path)
@@ -221,6 +215,7 @@ def keep_specific_file(sorted_match, keep_path, delete):
     else:
        print("\nNo matching files found\n")
 
+## The main function
 def main() -> int:
     args = parse_arguments()
     root = args.root.resolve()
